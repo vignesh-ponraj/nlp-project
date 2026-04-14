@@ -21,7 +21,7 @@ Multilingual pipelines (MT, cross-lingual retrieval, localized moderation) often
 ## Architecture
 
 - **Backend:** Python [FastAPI](https://fastapi.tiangolo.com/) — `POST /analyze`, `GET /health`, OpenAPI at `/docs`.
-- **Translation:** Configurable **OpenAI** (`/v1/chat/completions`) or **Anthropic** (`/v1/messages`) — uses your existing API subscription; no Azure or Google Cloud Translation required.
+- **Translation:** Configurable **OpenAI** (`https://api.openai.com/v1/chat/completions`) or **Anthropic** (`https://api.anthropic.com/v1/messages`) — uses your existing API subscription; no Azure or Google Cloud Translation required.
 - **Embeddings:** Configurable **OpenAI** (`text-embedding-3-small` by default) or **Google Gemini** (`text-embedding-004`) via `EMBEDDING_PROVIDER` — cloud only.
 - **Frontend:** [Vite](https://vitejs.dev/) + [React](https://react.dev/) (TypeScript) — single-page UI, dark theme, JSON export.
 
@@ -52,6 +52,41 @@ flowchart LR
 | Embeddings | OpenAI API key **or** Google AI Studio key (`EMBEDDING_PROVIDER=gemini`) |
 
 **Pricing:** Usage follows your **OpenAI** and **Anthropic** plan pricing for chat and embeddings. This project targets **low traffic** demos; each analyze runs several chat calls (four translation steps per request) plus embedding calls.
+
+## Local run (copy/paste)
+
+### Option A — native (recommended for development)
+
+```bash
+# Terminal 1 (API)
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp ../.env.example .env
+# fill keys in backend/.env
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# Terminal 2 (frontend)
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL (usually `http://localhost:5173`). The frontend proxies `/api` to `http://127.0.0.1:8000`.
+
+### Option B — Docker (API) + Vite (frontend)
+
+```bash
+# Build and run API container
+docker build -t pivotdrift-api backend
+docker run --rm -p 8000:8000 --env-file backend/.env pivotdrift-api
+
+# In another terminal, run frontend
+cd frontend
+npm install
+npm run dev
+```
 
 ## Quickstart (local)
 
@@ -113,6 +148,8 @@ Example prompts for manual exploration live in [`backend/examples.json`](backend
 | `OPENAI_BASE_URL` | Default `https://api.openai.com/v1` |
 | `ANTHROPIC_API_KEY` | Required when `TRANSLATION_PROVIDER=anthropic` |
 | `ANTHROPIC_TRANSLATION_MODEL` | Claude model id (default `claude-3-5-haiku-20241022`; override with your account’s available models) |
+| `ANTHROPIC_BASE_URL` | Default `https://api.anthropic.com` |
+| `ANTHROPIC_VERSION` | Default `2023-06-01` |
 | `EMBEDDING_PROVIDER` | `openai` (default) or `gemini` |
 | `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
 | `GEMINI_API_KEY` | Required if `EMBEDDING_PROVIDER=gemini` |

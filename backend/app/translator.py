@@ -120,10 +120,11 @@ async def _translate_anthropic(
     if not settings.anthropic_api_key.strip():
         raise TranslationError("ANTHROPIC_API_KEY is not set (required for Anthropic translation)", status_code=500)
 
-    url = "https://api.anthropic.com/v1/messages"
+    base = settings.anthropic_base_url.strip().rstrip("/")
+    url = f"{base}/v1/messages"
     headers = {
         "x-api-key": settings.anthropic_api_key.strip(),
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": settings.anthropic_version.strip() or "2023-06-01",
         "Content-Type": "application/json",
     }
     src = _lang_label(from_lang)

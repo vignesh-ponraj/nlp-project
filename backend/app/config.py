@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     openai_translation_model: str = "gpt-4o-mini"
     anthropic_api_key: str = ""
     anthropic_translation_model: str = "claude-3-5-haiku-20241022"
+    anthropic_base_url: str = "https://api.anthropic.com"
+    anthropic_version: str = "2023-06-01"
 
     # Embeddings: openai | gemini
     embedding_provider: str = "openai"
