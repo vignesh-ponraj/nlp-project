@@ -1,0 +1,32 @@
+[
+  {
+    "description": "Simple factual sentence — usually low drift",
+    "source_lang": "en",
+    "pivot_langs": ["es", "ja"],
+    "text": "The meeting is scheduled for Tuesday at 3pm."
+  },
+  {
+    "description": "Negation — often sensitive to pivot",
+    "source_lang": "en",
+    "pivot_langs": ["es", "fr"],
+    "text": "I do not think this product is terrible."
+  },
+  {
+    "description": "Idiom / figurative language",
+    "source_lang": "en",
+    "pivot_langs": ["es", "de"],
+    "text": "He really kicked the bucket last year, which shocked everyone."
+  },
+  {
+    "description": "Intensifiers and tone",
+    "source_lang": "en",
+    "pivot_langs": ["it", "ja"],
+    "text": "This is an absolutely brilliant and not at all disappointing update."
+  },
+  {
+    "description": "Named entity + number",
+    "source_lang": "en",
+    "pivot_langs": ["fr", "zh-Hans"],
+    "text": "Acme Corp paid $2.5M to settle the case in Paris."
+  }
+]
