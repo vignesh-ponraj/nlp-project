@@ -113,6 +113,12 @@ async def run_analysis(
         else settings.gemini_embedding_model
     )
 
+    tp = settings.translation_provider.strip().lower()
+    if tp == "anthropic":
+        translator_id = f"anthropic:{settings.anthropic_translation_model}"
+    else:
+        translator_id = f"openai_chat:{settings.openai_translation_model}"
+
     return AnalyzeResponse(
         original_text=text,
         source_lang=source_lang.lower(),
@@ -125,7 +131,7 @@ async def run_analysis(
             risk_level=_risk_level(mean_cosine_by_pivot, cross_gap),
         ),
         meta=AnalyzeMeta(
-            translator_id="azure_translator_v3",
+            translator_id=translator_id,
             embedding_provider=settings.embedding_provider.lower(),
             embedding_model_id=emb_model,
         ),

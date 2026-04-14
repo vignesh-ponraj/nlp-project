@@ -5,7 +5,7 @@
 ## What it does
 
 1. You provide **source text** (up to 800 characters by default), a **source language** code, and **exactly two pivot** language codes.
-2. The backend calls **Azure AI Translator** twice per pivot: `source → pivot → source`, producing two **back-translations**.
+2. The backend calls **OpenAI Chat Completions** or **Anthropic Claude (Messages API)** twice per pivot: `source → pivot → source`, producing two **back-translations** (LLM translation, not a dedicated MT API).
 3. Text is **split into segments** (sentences when possible; otherwise fixed windows). If segment counts disagree after round-trip, the pipeline **falls back** to a single segment for the whole text (see Limitations).
 4. For each segment, the service computes:
    - **Cosine similarity** between embeddings of the original segment and each back-translated segment (same embedding model for both).
@@ -21,7 +21,7 @@ Multilingual pipelines (MT, cross-lingual retrieval, localized moderation) often
 ## Architecture
 
 - **Backend:** Python [FastAPI](https://fastapi.tiangolo.com/) — `POST /analyze`, `GET /health`, OpenAPI at `/docs`.
-- **Translation:** [Azure AI Translator](https://azure.microsoft.com/products/ai-services/translator/) REST API v3 (cloud only; no local MT).
+- **Translation:** Configurable **OpenAI** (`/v1/chat/completions`) or **Anthropic** (`/v1/messages`) — uses your existing API subscription; no Azure or Google Cloud Translation required.
 - **Embeddings:** Configurable **OpenAI** (`text-embedding-3-small` by default) or **Google Gemini** (`text-embedding-004`) via `EMBEDDING_PROVIDER` — cloud only.
 - **Frontend:** [Vite](https://vitejs.dev/) + [React](https://react.dev/) (TypeScript) — single-page UI, dark theme, JSON export.
 
@@ -34,7 +34,7 @@ flowchart LR
     A[analyze_pipeline]
   end
   subgraph cloud [Hosted_APIs]
-    T[Azure_Translator]
+    T[OpenAI_or_Anthropic]
     E[Embedding_API]
   end
   SPA -->|POST_/analyze| A
@@ -48,10 +48,10 @@ flowchart LR
 |------------|--------|
 | Python     | 3.10+ recommended (Dockerfile uses 3.11) |
 | Node.js    | 20+ for Vite 8 |
-| Azure      | Translator resource + key + region |
-| Embeddings | OpenAI API key **or** Google AI Studio key |
+| Translation | OpenAI API key (`TRANSLATION_PROVIDER=openai`) **or** Anthropic API key (`anthropic`) |
+| Embeddings | OpenAI API key **or** Google AI Studio key (`EMBEDDING_PROVIDER=gemini`) |
 
-**Pricing:** Azure Translator and cloud APIs change over time — verify current **free tiers** and quotas in the provider consoles before deploying. This project is intended for **low traffic** demos.
+**Pricing:** Usage follows your **OpenAI** and **Anthropic** plan pricing for chat and embeddings. This project targets **low traffic** demos; each analyze runs several chat calls (four translation steps per request) plus embedding calls.
 
 ## Quickstart (local)
 
@@ -63,7 +63,7 @@ python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp ../.env.example .env
-# Edit .env: set AZURE_TRANSLATOR_KEY, AZURE_TRANSLATOR_REGION, and either OPENAI_API_KEY or GEMINI_API_KEY + EMBEDDING_PROVIDER=gemini
+# Edit .env: set TRANSLATION_PROVIDER (openai or anthropic), matching API keys, and EMBEDDING_PROVIDER + keys (OpenAI or Gemini)
 ```
 
 ### 2. Run the API
@@ -107,19 +107,20 @@ Example prompts for manual exploration live in [`backend/examples.json`](backend
 
 | Variable | Purpose |
 |----------|---------|
-| `AZURE_TRANSLATOR_KEY` | Azure Translator subscription key (**required**) |
-| `AZURE_TRANSLATOR_REGION` | Resource region (e.g. `eastus`) — required for most keys |
-| `AZURE_TRANSLATOR_ENDPOINT` | Optional; default global `https://api.cognitive.microsofttranslator.com` |
-| `EMBEDDING_PROVIDER` | `openai` (default) or `gemini` |
-| `OPENAI_API_KEY` | Required if provider is `openai` |
-| `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
+| `TRANSLATION_PROVIDER` | `openai` (default) or `anthropic` |
+| `OPENAI_TRANSLATION_MODEL` | Chat model for translation when using OpenAI (default `gpt-4o-mini`) |
+| `OPENAI_API_KEY` | Required for OpenAI translation and/or OpenAI embeddings |
 | `OPENAI_BASE_URL` | Default `https://api.openai.com/v1` |
-| `GEMINI_API_KEY` | Required if provider is `gemini` |
+| `ANTHROPIC_API_KEY` | Required when `TRANSLATION_PROVIDER=anthropic` |
+| `ANTHROPIC_TRANSLATION_MODEL` | Claude model id (default `claude-3-5-haiku-20241022`; override with your account’s available models) |
+| `EMBEDDING_PROVIDER` | `openai` (default) or `gemini` |
+| `OPENAI_EMBEDDING_MODEL` | Default `text-embedding-3-small` |
+| `GEMINI_API_KEY` | Required if `EMBEDDING_PROVIDER=gemini` |
 | `GEMINI_EMBEDDING_MODEL` | Default `text-embedding-004` |
 | `FRONTEND_ORIGINS` | Comma-separated CORS origins for production |
 | `MAX_INPUT_CHARS` | Max input length (default `800`) |
 
-**Language codes** must match [Azure Translator language support](https://learn.microsoft.com/azure/ai-services/translator/language-support) (e.g. `en`, `es`, `ja`, `zh-Hans`).
+**Language codes** are the same BCP-47 / ISO-style tags as in the UI (e.g. `en`, `es`, `ja`, `zh-Hans`). The backend maps common codes to English names in the prompt; uncommon codes are passed through as-is for the model to interpret.
 
 ## API reference
 
@@ -151,7 +152,7 @@ Returns `{ "status": "ok" }` for load balancers.
 ## Limitations (read before citing this in applications)
 
 - **Not ground truth:** Cosine on API embeddings is a **probe**, not an objective semantics metric. Different embedding models yield different numbers.
-- **Translator bias:** All legs use **one** MT engine (Azure); systematic errors correlate across pivots.
+- **Translator bias:** All legs use **one** LLM translation stack (OpenAI or Anthropic); outputs can vary between calls and share provider-specific biases.
 - **Alignment:** v1 uses **ordered segment alignment**; when sentence counts diverge after round-trip, the service **collapses** to one segment — fine for demos, weak for long heterogeneous documents.
 - **Length:** Designed for **short** user text; very long inputs are out of scope.
 - **Risk label:** `low` / `medium` / `high` is a **heuristic** for UI affordance only.

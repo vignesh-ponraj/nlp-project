@@ -13,10 +13,11 @@ class Settings(BaseSettings):
     # CORS — comma-separated origins, e.g. http://localhost:5173,https://app.vercel.app
     frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    # Azure Translator
-    azure_translator_key: str = ""
-    azure_translator_region: str = ""
-    azure_translator_endpoint: str = "https://api.cognitive.microsofttranslator.com"
+    # Translation via LLM: openai (Chat Completions) | anthropic (Claude Messages)
+    translation_provider: str = "openai"
+    openai_translation_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = ""
+    anthropic_translation_model: str = "claude-3-5-haiku-20241022"
 
     # Embeddings: openai | gemini
     embedding_provider: str = "openai"
